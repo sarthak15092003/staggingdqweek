@@ -34,7 +34,12 @@ if ($do_categories) {
     echo "<h2>Importing Categories (Page $page)</h2>";
     $url = "https://www.dqweek.com/wp-json/wp/v2/categories?per_page=$per_page&page=$page";
     
-    $response = wp_remote_get($url, ['timeout' => 30]);
+    $response = wp_remote_get($url, [
+        'timeout' => 30,
+        'headers' => [
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        ]
+    ]);
     if (is_wp_error($response)) {
         die("Error fetching: " . $response->get_error_message());
     }
@@ -43,7 +48,7 @@ if ($do_categories) {
     $categories = json_decode($body, true);
     
     if (empty($categories) || isset($categories['code'])) {
-        die("No more categories found or error: " . print_r($categories, true));
+        die("No more categories found or error: <br><pre>" . esc_html($body) . "</pre>");
     }
     
     foreach ($categories as $cat) {
@@ -71,7 +76,12 @@ if ($do_categories) {
     echo "<h2>Importing Posts (Page $page, $per_page per page)</h2>";
     $url = "https://www.dqweek.com/wp-json/wp/v2/posts?per_page=$per_page&page=$page&_embed";
     
-    $response = wp_remote_get($url, ['timeout' => 60]);
+    $response = wp_remote_get($url, [
+        'timeout' => 60,
+        'headers' => [
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        ]
+    ]);
     if (is_wp_error($response)) {
         die("Error fetching: " . $response->get_error_message());
     }
@@ -80,7 +90,7 @@ if ($do_categories) {
     $posts = json_decode($body, true);
     
     if (empty($posts) || isset($posts['code'])) {
-        die("No more posts found or error: " . print_r($posts, true));
+        die("No more posts found or error: <br><pre>" . esc_html($body) . "</pre>");
     }
     
     foreach ($posts as $post) {

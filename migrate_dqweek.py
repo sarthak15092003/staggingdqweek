@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
 DQWeek Migration Script
-Fetches categories and posts from https://www.dqweek.com/ and pushes them to https://egz1w2tn78-staging.onrocket.site/
+Fetches all categories and posts from https://www.dqweek.com/ and pushes them to https://egz1w2tn78-staging.onrocket.site/
 """
 
 import os
 import sys
+import re
 import json
 import time
 import argparse
@@ -33,20 +34,21 @@ def post_bridge(action, payload):
     encoded = urllib.parse.urlencode(payload).encode('utf-8')
     url = f"{DEST_BRIDGE_URL}?action={action}"
     req = urllib.request.Request(url, data=encoded, headers=HEADERS)
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    with urllib.request.urlopen(req, timeout=45) as resp:
         return json.loads(resp.read().decode('utf-8'))
 
 def sync_categories():
     print("=== Syncing Categories ===")
     sitemap_url = f"{SOURCE_DOMAIN}/category-sitemap.xml"
+    cat_urls = []
     try:
         xml_data = fetch_url(sitemap_url)
         root = ET.fromstring(xml_data)
-        locs = [elem.text for elem in root.findall('.//{http://www.sitemaps.org/schemas/sitemap/0.9}loc')]
-        print(f"Found {len(locs)} category URLs in sitemap.")
+        cat_urls = [elem.text for elem in root.findall('.//{http://www.sitemaps.org/schemas/sitemap/0.9}loc')]
+        print(f"Found {len(cat_urls)} category URLs in sitemap.")
         
         synced_count = 0
-        for loc in locs:
+        for loc in cat_urls:
             slug = loc.rstrip('/').split('/')[-1]
             if not slug or slug == 'dqweek.com':
                 continue
@@ -61,38 +63,79 @@ def sync_categories():
         print(f"Categories Sync Complete! ({synced_count} categories processed)\n")
     except Exception as e:
         print(f"[ERROR] Failed to sync categories: {e}\n")
+    return cat_urls
 
 def ucwords_slug(slug):
     return ' '.join([word.capitalize() for word in slug.replace('-', ' ').split()])
 
-def fetch_post_urls(sitemaps_limit=20):
-    print(f"=== Discovering Post URLs (scanning top {sitemaps_limit} sitemap files) ===")
+def discover_all_post_urls(sitemaps_limit=50, category_urls=[]):
+    print("=== Discovering Post URLs Across Site ===")
+    all_urls = set()
+
+    # 1. Scrape Homepage links
+    try:
+        print("1. Extracting post URLs from Homepage...")
+        hp_html = fetch_url(SOURCE_DOMAIN)
+        soup = BeautifulSoup(hp_html, 'html.parser')
+        for a in soup.find_all('a', href=True):
+            href = a['href']
+            if re.search(r'/(news|products|enterprise|smb|software|gadgets|security-surveillance|south|west|east|north|national|editorial-columns|retail-ratna)/[a-z0-9\-]+-\d+', href):
+                full_url = href if href.startswith('http') else SOURCE_DOMAIN + ('' if href.startswith('/') else '/') + href
+                all_urls.add(full_url)
+        print(f"   -> Found {len(all_urls)} post URLs on Homepage.")
+    except Exception as e:
+        print(f"   -> [WARN] Homepage scrape error: {e}")
+
+    # 2. Scrape Category Pages
+    if category_urls:
+        print("2. Extracting post URLs from Category Pages...")
+        cat_found = 0
+        for cat_url in category_urls[:20]: # Check top 20 category landing pages
+            try:
+                cat_html = fetch_url(cat_url)
+                soup = BeautifulSoup(cat_html, 'html.parser')
+                for a in soup.find_all('a', href=True):
+                    href = a['href']
+                    if re.search(r'/[a-z0-9\-]+-\d+$', href) and not href.endswith('.xml'):
+                        full_url = href if href.startswith('http') else SOURCE_DOMAIN + ('' if href.startswith('/') else '/') + href
+                        if full_url not in all_urls:
+                            all_urls.add(full_url)
+                            cat_found += 1
+            except Exception as e:
+                pass
+        print(f"   -> Found {cat_found} additional post URLs from Category Pages.")
+
+    # 3. Scrape Sitemap files
     main_sitemap_url = f"{SOURCE_DOMAIN}/sitemap.xml"
     try:
+        print(f"3. Scanning Sitemap index files (limit={sitemaps_limit if sitemaps_limit > 0 else 'ALL'})...")
         xml_data = fetch_url(main_sitemap_url)
         root = ET.fromstring(xml_data)
         sitemap_files = [elem.text for elem in root.findall('.//{http://www.sitemaps.org/schemas/sitemap/0.9}loc')]
-        print(f"Found {len(sitemap_files)} total daily sitemap files on source site.")
         
-        target_sitemaps = sitemap_files[:sitemaps_limit]
-        all_post_urls = []
+        target_sitemaps = sitemap_files if sitemaps_limit <= 0 else sitemap_files[:sitemaps_limit]
+        print(f"   -> Scanning {len(target_sitemaps)} sitemap files...")
         
+        sitemap_count = 0
         for idx, sm_url in enumerate(target_sitemaps, 1):
             try:
                 sm_xml = fetch_url(sm_url)
                 sm_root = ET.fromstring(sm_xml)
                 urls = [elem.text for elem in sm_root.findall('.//{http://www.sitemaps.org/schemas/sitemap/0.9}loc')]
                 post_urls = [u for u in urls if not u.endswith('llms.txt') and not u.endswith('.xml')]
-                all_post_urls.extend(post_urls)
-                print(f"  - Sitemap {idx}/{len(target_sitemaps)} ({sm_url.split('/')[-1]}): {len(post_urls)} posts found.")
+                for u in post_urls:
+                    if u not in all_urls:
+                        all_urls.add(u)
+                        sitemap_count += 1
             except Exception as e:
-                print(f"  - [WARN] Failed sitemap {sm_url}: {e}")
-                
-        print(f"Total Post URLs collected: {len(all_post_urls)}\n")
-        return all_post_urls
+                pass
+        print(f"   -> Found {sitemap_count} additional post URLs from Sitemaps.")
     except Exception as e:
-        print(f"[ERROR] Failed to fetch sitemap index: {e}")
-        return []
+        print(f"   -> [WARN] Sitemap index error: {e}")
+
+    url_list = sorted(list(all_urls))
+    print(f"Total Unique Post URLs Discovered: {len(url_list)}\n")
+    return url_list
 
 def scrape_and_import_post(post_url):
     try:
@@ -149,7 +192,6 @@ def scrape_and_import_post(post_url):
             content_html = ''.join(str(c) for c in article.contents)
             
         if not content_html:
-            # Fallback to main content divs
             main_content = soup.find('div', class_=lambda c: c and ('content' in c or 'story' in c))
             if main_content:
                 content_html = str(main_content)
@@ -174,20 +216,20 @@ def scrape_and_import_post(post_url):
 
 def main():
     parser = argparse.ArgumentParser(description="Migrate categories and posts from dqweek.com to staging site.")
-    parser.add_argument('--limit', type=int, default=20, help="Max number of posts to process (0 = all)")
-    parser.add_argument('--sitemaps', type=int, default=10, help="Max recent sitemap files to scan (default 10)")
-    parser.add_argument('--threads', type=int, default=5, help="Number of concurrent migration threads (default 5)")
+    parser.add_argument('--limit', type=int, default=0, help="Max number of posts to process (0 = process all discovered)")
+    parser.add_argument('--sitemaps', type=int, default=50, help="Max sitemap files to scan (0 = scan ALL 3,300+ sitemaps, default 50)")
+    parser.add_argument('--threads', type=int, default=8, help="Number of concurrent migration threads (default 8)")
     parser.add_argument('--categories-only', action='store_true', help="Sync categories only")
     args = parser.parse_args()
 
     # Step 1: Sync Categories
-    sync_categories()
+    category_urls = sync_categories()
     if args.categories_only:
         print("Categories-only mode completed.")
         return
 
-    # Step 2: Fetch Post URLs
-    post_urls = fetch_post_urls(sitemaps_limit=args.sitemaps)
+    # Step 2: Discover Post URLs across Homepage, Categories & Sitemaps
+    post_urls = discover_all_post_urls(sitemaps_limit=args.sitemaps, category_urls=category_urls)
     if not post_urls:
         print("No post URLs found. Exiting.")
         return

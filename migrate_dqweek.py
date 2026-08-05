@@ -133,6 +133,11 @@ def discover_all_post_urls(sitemaps_limit=50, category_urls=[]):
                         sitemap_count += 1
             except Exception as e:
                 pass
+            
+            # Print progress every 100 sitemaps so it doesn't look frozen
+            if idx % 100 == 0 or idx == len(target_sitemaps):
+                print(f"      ... scanned {idx}/{len(target_sitemaps)} sitemaps (Found {sitemap_count} posts so far)")
+                
         print(f"   -> Found {sitemap_count} additional post URLs from Sitemaps.")
     except Exception as e:
         print(f"   -> [WARN] Sitemap index error: {e}")

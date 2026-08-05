@@ -64,7 +64,7 @@ if ($do_categories) {
                 echo "<p style='color:red'>Error creating category $name: " . $res->get_error_message() . "</p>";
             }
         } else {
-            echo "<p style='color:orange'>Category exists: $name</p>";
+            echo "<p style='color:orange'><strong>[SKIPPED]</strong> Category already exists: $name</p>";
         }
     }
     
@@ -100,8 +100,12 @@ if ($do_categories) {
         $date = $post['date'];
         
         $existing = get_page_by_path($slug, OBJECT, 'post');
+        if (!$existing) {
+            $existing = get_page_by_title($title, OBJECT, 'post');
+        }
+        
         if ($existing) {
-            echo "<p style='color:orange'>Post exists: $title</p>";
+            echo "<p style='color:orange'><strong>[SKIPPED]</strong> Post already exists: $title</p>";
             continue;
         }
         

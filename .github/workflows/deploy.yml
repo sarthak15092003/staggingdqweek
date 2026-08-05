@@ -9,17 +9,23 @@ on:
 
 jobs:
   web-deploy:
-    name: Deploy to Staging Server via FTP
+    name: Fast Parallel FTP Deployment
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Sync Files via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: wp-content/themes/quanto/
-          local-dir: ./quanto/
+      - name: Install LFTP
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Deploy Theme via LFTP (Parallel 10x Speed)
+        run: |
+          lftp -e "
+            set ftp:ssl-allow no;
+            set net:timeout 15;
+            set net:max-retries 3;
+            set net:reconnect-interval-base 5;
+            open -u '${{ secrets.FTP_USERNAME }}','${{ secrets.FTP_PASSWORD }}' '${{ secrets.FTP_SERVER }}';
+            mirror --reverse --parallel=10 --only-newer --verbose ./quanto wp-content/themes/quanto;
+            quit;
+          "

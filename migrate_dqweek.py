@@ -16,6 +16,10 @@ import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from bs4 import BeautifulSoup
 
+# Ensure Windows terminal prints unicode cleanly
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
 # Default Config
 SOURCE_DOMAIN = "https://www.dqweek.com"
 DEST_BRIDGE_URL = "https://egz1w2tn78-staging.onrocket.site/wp-content/themes/quanto/import_bridge.php"
@@ -252,10 +256,12 @@ def main():
                     existed_count += 1
                 else:
                     success_count += 1
-                print(f"[{i}/{len(post_urls)}] [{res['status']}] Post ID {res.get('post_id')}: {res['title']}")
+                title_safe = str(res.get('title', '')).encode('ascii', 'replace').decode('ascii')
+                print(f"[{i}/{len(post_urls)}] [{res['status']}] Post ID {res.get('post_id')}: {title_safe}")
             else:
                 fail_count += 1
-                print(f"[{i}/{len(post_urls)}] [FAILED] {res.get('url')}: {res.get('error')}")
+                err_safe = str(res.get('error', '')).encode('ascii', 'replace').decode('ascii')
+                print(f"[{i}/{len(post_urls)}] [FAILED] {res.get('url')}: {err_safe}")
 
     elapsed = time.time() - start_time
     print(f"\n==========================================")

@@ -51,6 +51,48 @@ if ($action === 'status') {
     exit;
 }
 
+if ($action === 'debug_header') {
+    $home_page = get_page_by_path('home');
+    $page_id = $home_page ? $home_page->ID : 45;
+    $template = get_post_meta($page_id, '_wp_page_template', true);
+    
+    $redux_active = class_exists('ReduxFramework');
+    $elementor_active = defined('ELEMENTOR_VERSION');
+    
+    $header_options = function_exists('quanto_opt') ? quanto_opt('quanto_header_options') : null;
+    $header_select = function_exists('quanto_opt') ? quanto_opt('quanto_header_select_options') : null;
+    
+    $post_meta_header_style = get_post_meta($page_id, '_quanto_header_style', true);
+    $post_meta_header_builder = get_post_meta($page_id, '_quanto_header_builder_option', true);
+
+    $header_post_12 = get_post(12);
+
+    $builder_display = \Elementor\Plugin::instance()->frontend->get_builder_content_for_display(12);
+    $builder_content = \Elementor\Plugin::instance()->frontend->get_builder_content(12, true);
+    echo json_encode([
+        'home_page_id' => $page_id,
+        'get_builder_content_for_display_len' => strlen($builder_display),
+        'get_builder_content_len' => strlen($builder_content),
+        'apply_filters_the_content_len' => strlen($raw_content),
+    ]);
+    exit;
+}
+
+if ($action === 'fix_home_template') {
+    $home_page = get_page_by_path('home');
+    $page_id = $home_page ? $home_page->ID : 45;
+    
+    // Change template from elementor_header_footer to default
+    update_post_meta($page_id, '_wp_page_template', 'default');
+    
+    echo json_encode([
+        'success' => true,
+        'page_id' => $page_id,
+        'new_template' => get_post_meta($page_id, '_wp_page_template', true)
+    ]);
+    exit;
+}
+
 if ($action === 'create_category') {
     $name = isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '';
     $slug = isset($_POST['slug']) ? sanitize_title($_POST['slug']) : '';

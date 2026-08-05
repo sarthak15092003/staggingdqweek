@@ -5,7 +5,6 @@
  * @Author     : Mirrortheme
  * @Author URI : https://mirrortheme.com/
  * 
- * CI/CD Deployment Test
  */
 
 // Block direct access
@@ -51,5 +50,6 @@ require_once QUANTO_DIR_PATH_INC . 'quanto-breadcrumbs.php';
 // quanto widgets reg
 require_once QUANTO_DIR_PATH_INC . 'quanto-widgets-reg.php';
 
-// quanto hooks
+// quanto hooks functions & hooks
+require_once QUANTO_DIR_PATH_INC . 'hooks/hooks-functions.php';
 require_once QUANTO_DIR_PATH_INC . 'hooks/hooks.php';

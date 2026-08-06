@@ -7966,9 +7966,12 @@ h3.inner-title {
   margin: 10px 0;
 }
 
+
 /* Custom Pagination Fix */
 ul.pagination.custom-ul {
     justify-content: center !important;
+    flex-wrap: wrap !important;
+    gap: 5px !important;
 }
 ul.pagination.custom-ul li {
     list-style: none !important;
@@ -7977,32 +7980,39 @@ ul.pagination.custom-ul li::before, ul.pagination.custom-ul li::after {
     display: none !important;
     content: none !important;
 }
-ul.pagination.custom-ul li a.page-numbers,
-ul.pagination.custom-ul li span.page-numbers {
+ul.pagination.custom-ul li a,
+ul.pagination.custom-ul li span {
     display: inline-flex !important;
     justify-content: center !important;
     align-items: center !important;
-    width: 40px !important;
-    height: 40px !important;
+    width: 32px !important;
+    height: 32px !important;
     border-radius: 50% !important;
-    margin: 0 5px !important;
+    margin: 0 !important;
+    padding: 0 !important;
     text-decoration: none !important;
     color: inherit !important;
     background: transparent;
     border: 1px solid #ddd;
+    font-size: 13px !important;
+    line-height: 1 !important;
 }
-ul.pagination.custom-ul li a.page-link.active,
+ul.pagination.custom-ul li a.active,
 ul.pagination.custom-ul li span.current {
     background: #000 !important;
     color: #fff !important;
     border-color: #000 !important;
 }
-ul.pagination.custom-ul li a.next.page-numbers,
-ul.pagination.custom-ul li a.prev.page-numbers {
+ul.pagination.custom-ul li a.next,
+ul.pagination.custom-ul li a.prev {
     width: auto !important;
     border-radius: 5px !important;
     background: transparent !important;
     border: none !important;
     font-weight: 600 !important;
+    padding: 0 10px !important;
 }
-
+ul.pagination.custom-ul li span.dots {
+    border: none !important;
+    background: transparent !important;
+}

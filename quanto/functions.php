@@ -28,6 +28,7 @@ require_once QUANTO_DIR_PATH_INC . 'essential-scripts.php';
 
 //template helper
 require_once QUANTO_DIR_PATH_INC . 'template-helper.php';
+require_once QUANTO_DIR_PATH_INC . 'wp-html-helper.php';
 
 // plugin activation
 require_once QUANTO_DIR_PATH_INC . 'Quanto-framework/plugins-activation/quanto-active-plugins.php';

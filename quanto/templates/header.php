@@ -20,6 +20,13 @@ if ( ! function_exists( 'quanto_render_header_builder_post' ) ) {
         if ( empty( $post_id ) ) {
             return false;
         }
+        
+        static $is_rendering = array();
+        if ( isset( $is_rendering[$post_id] ) ) {
+            return false;
+        }
+        $is_rendering[$post_id] = true;
+
         $header_post = get_post( $post_id );
         if ( ! $header_post ) {
             return false;

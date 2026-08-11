@@ -545,17 +545,76 @@ if ( ! function_exists( 'quanto_safe_render_elementor_post' ) ) {
         if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
             $css_file = new \Elementor\Core\Files\CSS\Post( $post_id );
             $css_file->enqueue();
+
+            $css_url = $css_file->get_url();
+            if ( ! empty( $css_url ) ) {
+                $css_output .= '<link rel="stylesheet" id="elementor-post-' . esc_attr( $post_id ) . '-css" href="' . esc_url( $css_url ) . '" type="text/css" media="all" />';
+            }
+
             $css_path = $css_file->get_path();
+            $css_content = '';
             if ( file_exists( $css_path ) ) {
                 $css_content = file_get_contents( $css_path );
-                if ( ! empty( $css_content ) ) {
-                    $css_output = '<style id="elementor-post-' . $post_id . '-inline-css">' . $css_content . '</style>';
-                }
+            }
+            if ( empty( $css_content ) && method_exists( $css_file, 'get_content' ) ) {
+                $css_content = $css_file->get_content();
+            }
+            if ( ! empty( $css_content ) ) {
+                $css_output .= '<style id="elementor-post-' . esc_attr( $post_id ) . '-inline-css">' . $css_content . '</style>';
             }
         }
 
         $content = \Elementor\Plugin::instance()->frontend->get_builder_content_for_display( $post_id, true );
         return $css_output . '<div data-elementor-type="wp-post" data-elementor-id="' . esc_attr( $post_id ) . '" class="elementor elementor-' . esc_attr( $post_id ) . '">' . $content . '</div>';
+    }
+}
+
+add_action( 'wp_enqueue_scripts', 'quanto_enqueue_footer_elementor_css', 99 );
+function quanto_enqueue_footer_elementor_css() {
+    if ( ! class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
+        return;
+    }
+    $footer_id = 0;
+    if ( is_page() || is_page_template( 'template-builder.php' ) ) {
+        $post_id = get_the_ID();
+        if ( class_exists( '\Elementor\Core\Settings\Manager' ) ) {
+            $page_settings_manager = \Elementor\Core\Settings\Manager::get_settings_managers( 'page' );
+            if ( $page_settings_manager ) {
+                $page_settings_model = $page_settings_manager->get_model( $post_id );
+                if ( $page_settings_model ) {
+                    $footer_enable_disable = $page_settings_model->get_settings( 'quanto_footer_choice' );
+                    $footer_settings = $page_settings_model->get_settings( 'quanto_footer_style' );
+                    if ( $footer_enable_disable == 'yes' && $footer_settings == 'footer_builder' ) {
+                        $footer_id = $page_settings_model->get_settings( 'quanto_footer_builder_option' );
+                    }
+                }
+            }
+        }
+    }
+    if ( empty( $footer_id ) && function_exists( 'quanto_opt' ) ) {
+        $trigger = quanto_opt( 'quanto_footer_builder_trigger' );
+        if ( $trigger == 'footer_builder' ) {
+            $footer_id = quanto_opt( 'quanto_footer_builder_select' );
+        }
+    }
+    if ( empty( $footer_id ) && ( is_archive() || is_home() || is_search() || is_single() ) ) {
+        if ( function_exists( 'quanto_opt' ) ) {
+            $footer_id = quanto_opt( 'quanto_archive_footer_select_options' );
+        }
+    }
+    if ( empty( $footer_id ) ) {
+        $footer_posts = get_posts( array(
+            'post_type'      => array( 'quanto_footer', 'elementor_library' ),
+            'posts_per_page' => 1,
+            'post_status'    => 'publish',
+        ) );
+        if ( ! empty( $footer_posts ) ) {
+            $footer_id = $footer_posts[0]->ID;
+        }
+    }
+    if ( ! empty( $footer_id ) ) {
+        $css_file = new \Elementor\Core\Files\CSS\Post( $footer_id );
+        $css_file->enqueue();
     }
 }
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * CMR Enterprise Connect Grid Component
+ * CMR Enterprise Connect Grid Component with Numeric Pagination
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

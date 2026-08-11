@@ -8,6 +8,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 add_shortcode( 'cmr_enterprise_connect_grid', 'cmr_enterprise_connect_grid_shortcode' );
+add_action( 'init', function() {
+    add_shortcode( 'cmr_enterprise_connect_grid', 'cmr_enterprise_connect_grid_shortcode' );
+}, 99999 );
 
 function cmr_enterprise_connect_grid_shortcode( $atts ) {
     $atts = shortcode_atts( array(
@@ -654,39 +657,27 @@ function cmr_enterprise_connect_grid_shortcode( $atts ) {
             });
         }
 
-        // AJAX Pagination
-        // Fetch posts on click
-        const navLinks = document.querySelectorAll('.intel-nav-links a:not(.cmr-nav-btn-subscribe)');
-        if (navLinks.length > 0) {
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    // Check if it's an anchor link
-                    const href = link.getAttribute('href');
-                    if (href && href.startsWith('#') && href !== '#') {
-                        // Let cmr-sticky-nav-script handle the smooth scroll
-                        return;
-                    }
-                    
-                    if (href === '#' || !href) {
-                        e.preventDefault();
+        // Numeric Pagination Clicks
+        document.addEventListener('click', function(e) {
+            const link = e.target.closest('.cmr-enterprisecgd-pagination-wrap a, .intel-numeric-pagination a');
+            if (link) {
+                e.preventDefault();
+                const href = link.getAttribute('href');
+                if (href) {
+                    const match = href.match(/(?:paged|page)[=\/](\d+)/);
+                    if (match) {
+                        currentPage = parseInt(match[1], 10);
                     } else {
-                        e.preventDefault();
-                        const match = href.match(/paged=(\d+)/);
-                        if (match) {
-                            currentPage = parseInt(match[1], 10);
-                        } else {
-                            const pathMatch = href.match(/\/page\/(\d+)/);
-                            if (pathMatch) {
-                                currentPage = parseInt(pathMatch[1], 10);
-                            } else if (href.indexOf('?') === -1 && href.indexOf('page') === -1) {
-                                currentPage = 1;
-                            }
-                        }
-                        fetchPosts(true);
+                        currentPage = 1;
                     }
-                });
-            });
-        }
+                    fetchPosts(false);
+                    const gridEl = document.getElementById('cmr-enterprisecgd-grid');
+                    if (gridEl) {
+                        gridEl.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }
+            }
+        });
     });
     </script>
     <?php

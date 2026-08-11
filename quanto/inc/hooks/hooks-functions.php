@@ -541,6 +541,58 @@ if ( ! function_exists( 'quanto_safe_render_elementor_post' ) ) {
         }
         $is_rendering[$post_id] = true;
 
+        $transient_key = 'quanto_footer_cache_' . $post_id;
+        if ( isset($_GET['nocache']) || isset($_GET['clear_footer_cache']) ) {
+            delete_transient($transient_key);
+        }
+
+        $cached = get_transient($transient_key);
+        if ( false !== $cached && !empty($cached) ) {
+            return $cached;
+        }
+
+        // URL approach: fetch the footer post directly
+        $url = get_permalink( $post_id );
+        if ( empty($url) ) {
+            $url = home_url( '/?p=' . $post_id );
+        }
+
+        $response = wp_remote_get( $url, array( 'timeout' => 15, 'sslverify' => false ) );
+        if ( ! is_wp_error( $response ) && wp_remote_retrieve_response_code( $response ) == 200 ) {
+            $html = wp_remote_retrieve_body( $response );
+            $footer_html = '';
+
+            // Extract Elementor related CSS links (by href containing elementor or id containing elementor)
+            preg_match_all('/<link[^>]*(?:href=[\'"][^\'"]*(?:\/elementor\/|\/elementor-pro\/)[^\'"]*[\'"]|id=[\'"][^\'"]*elementor[^\'"]*[\'"])[^>]*>/i', $html, $css_matches);
+            if ( !empty($css_matches[0]) ) {
+                $footer_html .= implode("\n", array_unique($css_matches[0])) . "\n";
+            }
+
+            // Extract inline styles for elementor
+            preg_match_all('/<style[^>]*id=[\'"][^\'"]*elementor[^\'"]*[\'"][^>]*>.*?<\/style>/is', $html, $style_matches);
+            if ( !empty($style_matches[0]) ) {
+                $footer_html .= implode("\n", $style_matches[0]) . "\n";
+            }
+
+            // Extract content
+            $start_str = '<div data-elementor-type="wp-post"';
+            $start_pos = strpos($html, $start_str);
+            if ( $start_pos !== false ) {
+                $end_pos = strpos($html, '</body>', $start_pos);
+                if ( $end_pos !== false ) {
+                    $content_chunk = substr($html, $start_pos, $end_pos - $start_pos);
+                    // Remove trailing scripts
+                    $content_chunk = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', "", $content_chunk);
+                    $footer_html .= $content_chunk;
+                }
+            }
+
+            if ( !empty($footer_html) && strpos($footer_html, 'data-elementor-type="wp-post"') !== false ) {
+                set_transient( $transient_key, $footer_html, HOUR_IN_SECONDS * 24 );
+                return $footer_html;
+            }
+        }
+
         $css_output = '';
         if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
             $css_file = new \Elementor\Core\Files\CSS\Post( $post_id );
@@ -564,7 +616,10 @@ if ( ! function_exists( 'quanto_safe_render_elementor_post' ) ) {
             }
         }
 
-        $content = \Elementor\Plugin::instance()->frontend->get_builder_content_for_display( $post_id, true );
+        $content = '';
+        if ( class_exists( '\Elementor\Plugin' ) ) {
+            $content = \Elementor\Plugin::instance()->frontend->get_builder_content_for_display( $post_id, true );
+        }
         return $css_output . $content;
     }
 }

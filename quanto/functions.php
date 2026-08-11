@@ -55,6 +55,8 @@ require_once QUANTO_DIR_PATH_INC . 'quanto-widgets-reg.php';
 require_once QUANTO_DIR_PATH_INC . 'hooks/hooks-functions.php';
 require_once QUANTO_DIR_PATH_INC . 'hooks/hooks.php';
 
+require_once QUANTO_DIR_PATH_INC . 'cmr-enterprise-connect-grid.php';
+
 if ( ! function_exists( 'cmr_get_unique_enterprise_post_ids' ) ) {
     function cmr_get_unique_enterprise_post_ids() {
         global $wpdb;

@@ -565,7 +565,7 @@ if ( ! function_exists( 'quanto_safe_render_elementor_post' ) ) {
         }
 
         $content = \Elementor\Plugin::instance()->frontend->get_builder_content_for_display( $post_id, true );
-        return $css_output . '<div data-elementor-type="wp-post" data-elementor-id="' . esc_attr( $post_id ) . '" class="elementor elementor-' . esc_attr( $post_id ) . '">' . $content . '</div>';
+        return $css_output . $content;
     }
 }
 

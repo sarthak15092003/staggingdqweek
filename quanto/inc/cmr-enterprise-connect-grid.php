@@ -9,6 +9,111 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_shortcode( 'cmr_enterprise_connect_grid', 'cmr_enterprise_connect_grid_shortcode' );
 
+// Register as Native Elementor Widget
+add_action( 'elementor/widgets/register', 'cmr_register_enterprise_connect_grid_elementor_widget' );
+add_action( 'elementor/widgets/widgets_registered', 'cmr_register_enterprise_connect_grid_elementor_widget' );
+
+function cmr_register_enterprise_connect_grid_elementor_widget( $widgets_manager = null ) {
+    if ( ! class_exists( '\Elementor\Widget_Base' ) ) {
+        return;
+    }
+
+    if ( ! class_exists( 'CMR_Enterprise_Connect_Grid_Elementor_Widget' ) ) {
+        class CMR_Enterprise_Connect_Grid_Elementor_Widget extends \Elementor\Widget_Base {
+
+            public function get_name() {
+                return 'cmr_enterprise_connect_grid';
+            }
+
+            public function get_title() {
+                return esc_html__( 'CMR Enterprise Connect Grid', 'quanto' );
+            }
+
+            public function get_icon() {
+                return 'eicon-posts-grid';
+            }
+
+            public function get_categories() {
+                return [ 'general' ];
+            }
+
+            protected function register_controls() {
+                $this->start_controls_section(
+                    'content_section',
+                    [
+                        'label' => esc_html__( 'Content', 'quanto' ),
+                        'tab'   => \Elementor\Controls_Manager::TAB_CONTENT,
+                    ]
+                );
+
+                $this->add_control(
+                    'link_featured',
+                    [
+                        'label'       => esc_html__( 'Link Featured', 'quanto' ),
+                        'type'        => \Elementor\Controls_Manager::TEXT,
+                        'default'     => '#featured',
+                    ]
+                );
+
+                $this->add_control(
+                    'link_latest',
+                    [
+                        'label'       => esc_html__( 'Link Latest', 'quanto' ),
+                        'type'        => \Elementor\Controls_Manager::TEXT,
+                        'default'     => '#latest',
+                    ]
+                );
+
+                $this->add_control(
+                    'link_market',
+                    [
+                        'label'       => esc_html__( 'Link Market Updates', 'quanto' ),
+                        'type'        => \Elementor\Controls_Manager::TEXT,
+                        'default'     => '#cmr-market-updates',
+                    ]
+                );
+
+                $this->add_control(
+                    'link_reports',
+                    [
+                        'label'       => esc_html__( 'Link Reports', 'quanto' ),
+                        'type'        => \Elementor\Controls_Manager::TEXT,
+                        'default'     => '#reports',
+                    ]
+                );
+
+                $this->add_control(
+                    'link_cmr_news',
+                    [
+                        'label'       => esc_html__( 'Link CMR in news', 'quanto' ),
+                        'type'        => \Elementor\Controls_Manager::TEXT,
+                        'default'     => '#cmr-in-news',
+                    ]
+                );
+
+                $this->end_controls_section();
+            }
+
+            protected function render() {
+                $settings = $this->get_settings_for_display();
+                echo cmr_enterprise_connect_grid_shortcode( array(
+                    'link_featured' => isset($settings['link_featured']) ? $settings['link_featured'] : '#featured',
+                    'link_latest'   => isset($settings['link_latest']) ? $settings['link_latest'] : '#latest',
+                    'link_market'   => isset($settings['link_market']) ? $settings['link_market'] : '#cmr-market-updates',
+                    'link_reports'  => isset($settings['link_reports']) ? $settings['link_reports'] : '#reports',
+                    'link_cmr_news' => isset($settings['link_cmr_news']) ? $settings['link_cmr_news'] : '#cmr-in-news',
+                ) );
+            }
+        }
+    }
+
+    if ( is_object( $widgets_manager ) && method_exists( $widgets_manager, 'register' ) ) {
+        $widgets_manager->register( new CMR_Enterprise_Connect_Grid_Elementor_Widget() );
+    } elseif ( class_exists( '\Elementor\Plugin' ) && isset( \Elementor\Plugin::$instance->widgets_manager ) ) {
+        \Elementor\Plugin::$instance->widgets_manager->register_widget_type( new CMR_Enterprise_Connect_Grid_Elementor_Widget() );
+    }
+}
+
 function cmr_enterprise_connect_grid_shortcode( $atts ) {
     $atts = shortcode_atts( array(
         'link_enterprise'   => '#enterprise-connect',

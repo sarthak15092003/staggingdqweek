@@ -540,7 +540,22 @@ if ( ! function_exists( 'quanto_safe_render_elementor_post' ) ) {
             return '';
         }
         $is_rendering[$post_id] = true;
-        return \Elementor\Plugin::instance()->frontend->get_builder_content_for_display( $post_id, true );
+
+        $css_output = '';
+        if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
+            $css_file = new \Elementor\Core\Files\CSS\Post( $post_id );
+            $css_file->enqueue();
+            $css_path = $css_file->get_path();
+            if ( file_exists( $css_path ) ) {
+                $css_content = file_get_contents( $css_path );
+                if ( ! empty( $css_content ) ) {
+                    $css_output = '<style id="elementor-post-' . $post_id . '-inline-css">' . $css_content . '</style>';
+                }
+            }
+        }
+
+        $content = \Elementor\Plugin::instance()->frontend->get_builder_content_for_display( $post_id, true );
+        return $css_output . '<div data-elementor-type="wp-post" data-elementor-id="' . esc_attr( $post_id ) . '" class="elementor elementor-' . esc_attr( $post_id ) . '">' . $content . '</div>';
     }
 }
 

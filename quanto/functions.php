@@ -54,3 +54,53 @@ require_once QUANTO_DIR_PATH_INC . 'quanto-widgets-reg.php';
 // quanto hooks functions & hooks
 require_once QUANTO_DIR_PATH_INC . 'hooks/hooks-functions.php';
 require_once QUANTO_DIR_PATH_INC . 'hooks/hooks.php';
+
+if ( ! function_exists( 'cmr_get_unique_enterprise_post_ids' ) ) {
+    function cmr_get_unique_enterprise_post_ids() {
+        global $wpdb;
+        $results = $wpdb->get_results("
+            SELECT p.ID, p.post_title 
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->term_relationships} tr ON p.ID = tr.object_id
+            INNER JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+            INNER JOIN {$wpdb->terms} t ON tt.term_id = t.term_id
+            WHERE p.post_type IN ('post', 'cmr_news', 'cmr_media') 
+              AND p.post_status = 'publish' 
+              AND (t.slug IN ('enterprise-connect', 'enterprise', 'enterprise_connect') OR t.name LIKE '%Enterprise Connect%' OR t.name LIKE '%Enterprise%')
+            ORDER BY p.post_date DESC
+            LIMIT 500
+        ");
+
+        $unique_ids = array();
+        $seen_titles = array();
+        if ( $results ) {
+            foreach ( $results as $row ) {
+                $title = trim( $row->post_title );
+                if ( ! isset( $seen_titles[ $title ] ) ) {
+                    $seen_titles[ $title ] = true;
+                    $unique_ids[] = $row->ID;
+                }
+            }
+        }
+
+        if ( count( $unique_ids ) < 12 ) {
+            $fallback = $wpdb->get_results("
+                SELECT ID, post_title FROM {$wpdb->posts}
+                WHERE post_type IN ('post', 'cmr_news', 'cmr_media') AND post_status = 'publish'
+                ORDER BY post_date DESC
+                LIMIT 30
+            ");
+            if ( $fallback ) {
+                foreach ( $fallback as $row ) {
+                    $title = trim( $row->post_title );
+                    if ( ! isset( $seen_titles[ $title ] ) && ! in_array( $row->ID, $unique_ids ) ) {
+                        $seen_titles[ $title ] = true;
+                        $unique_ids[] = $row->ID;
+                    }
+                }
+            }
+        }
+
+        return $unique_ids;
+    }
+}

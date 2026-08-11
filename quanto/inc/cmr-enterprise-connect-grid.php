@@ -20,6 +20,7 @@ function cmr_enterprise_connect_grid_shortcode( $atts ) {
     ), $atts, 'cmr_enterprise_connect_grid' );
 
     ob_start();
+    echo '<!-- CMR_ENTERPRISE_CONNECT_GRID_TEST_V2 -->';
 
     $unique_ids = cmr_get_unique_enterprise_post_ids();
     $sliced_ids = array_slice( $unique_ids, 0, 6 );

@@ -314,9 +314,14 @@ function cmr_enterprise_connect_grid_shortcode( $atts ) {
             margin-bottom: 60px;
         }
         
+        @keyframes cmrCardFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         .cmr-enterprisecgd-card {
             display: flex;
             flex-direction: column;
+            animation: cmrCardFadeIn 0.35s ease forwards;
         }
         
         .cmr-enterprisecgd-card-img-wrap {
@@ -542,38 +547,7 @@ function cmr_enterprise_connect_grid_shortcode( $atts ) {
             <p>Explore expert analysis, research reports, and real-time market signals shaping industries and business strategy.</p>
         </div>
 
-        <!-- Filters & Search -->
-        <div class="cmr-enterprisecgd-filters-row">
-            <div class="cmr-enterprisecgd-years" id="cmr-enterprisecgd-years">
-                <button class="cmr-enterprisecgd-year-btn active" data-year="">All</button>
-                <button class="cmr-enterprisecgd-year-btn" data-year="2026">2026</button>
-                <button class="cmr-enterprisecgd-year-btn" data-year="2025">2025</button>
-                <button class="cmr-enterprisecgd-year-btn" data-year="2024">2024</button>
-                <button class="cmr-enterprisecgd-year-btn" data-year="2023">2023</button>
-                <button class="cmr-enterprisecgd-year-btn" data-year="2022">2022</button>
-                <button class="cmr-enterprisecgd-year-btn" data-year="2021">2021</button>
-                <div class="cmr-enterprisecgd-more-dropdown" style="position: relative;">
-                    <button class="cmr-enterprisecgd-more-btn" id="cmr-enterprisecgd-more-btn">More <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
-                    <div class="cmr-enterprisecgd-more-content" id="cmr-enterprisecgd-more-content" style="display: none; position: absolute; top: 100%; left: 0; background: #fff; border: 1px solid #eaeaea; border-radius: 8px; padding: 10px; z-index: 100; min-width: 120px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 5px;">
-                        <button class="cmr-enterprisecgd-year-btn" data-year="2020" style="display:block; width:100%; text-align:left; border:none; border-radius:4px; padding:8px 12px; margin-bottom:4px; background:transparent;">2020</button>
-                        <button class="cmr-enterprisecgd-year-btn" data-year="2019" style="display:block; width:100%; text-align:left; border:none; border-radius:4px; padding:8px 12px; margin-bottom:4px; background:transparent;">2019</button>
-                        <button class="cmr-enterprisecgd-year-btn" data-year="2018" style="display:block; width:100%; text-align:left; border:none; border-radius:4px; padding:8px 12px; margin-bottom:4px; background:transparent;">2018</button>
-                        <button class="cmr-enterprisecgd-year-btn" data-year="2017" style="display:block; width:100%; text-align:left; border:none; border-radius:4px; padding:8px 12px; margin-bottom:4px; background:transparent;">2017</button>
-                        <button class="cmr-enterprisecgd-year-btn" data-year="2016" style="display:block; width:100%; text-align:left; border:none; border-radius:4px; padding:8px 12px; background:transparent;">2016</button>
-                    </div>
-                </div>
-            </div>
-            <div class="cmr-enterprisecgd-search">
-                <form id="cmr-enterprisecgd-search-form" onsubmit="return false;">
-                    <input type="text" id="cmr-enterprisecgd-search-input" placeholder="Search by name">
-                    <button type="submit" class="cmr-enterprisecgd-search-btn">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Grid -->
+        <!-- Header -->
         <div class="cmr-enterprisecgd-grid" id="cmr-enterprisecgd-grid">
             <?php
             if ( $query->have_posts() ) {
@@ -593,6 +567,8 @@ function cmr_enterprise_connect_grid_shortcode( $atts ) {
                     $read_time = ceil( $word_count / 200 );
                     if ($read_time < 1) $read_time = 1;
                     $date = get_the_date('d M Y');
+                    $cats = get_the_category( $post_id );
+                    $cat_name = ! empty( $cats ) ? $cats[0]->name : 'Enterprise Connect';
                     ?>
                     <div class="cmr-enterprisecgd-card">
                         <div class="cmr-enterprisecgd-card-img-wrap">
@@ -607,7 +583,7 @@ function cmr_enterprise_connect_grid_shortcode( $atts ) {
                             </a>
                         </div>
                         <div class="cmr-enterprisecgd-card-meta">
-                            <div class="cmr-enterprisecgd-card-label">Enterprise Connect <span>|</span> <?php echo esc_html($date); ?></div>
+                            <div class="cmr-enterprisecgd-card-label"><?php echo esc_html($cat_name); ?> <span>|</span> <?php echo esc_html($date); ?></div>
                             <div class="cmr-enterprisecgd-card-time"><?php echo esc_html($read_time); ?> min read</div>
                         </div>
                         <h3 class="cmr-enterprisecgd-card-title">
@@ -666,7 +642,8 @@ function cmr_enterprise_connect_grid_shortcode( $atts ) {
                 currentPage = 1;
             }
             if (!isLoadMore) {
-                grid.innerHTML = '<p>Loading...</p>';
+                grid.style.opacity = '0.35';
+                grid.style.transition = 'opacity 0.25s ease';
             }
             
             if (loadMoreBtn) loadMoreBtn.classList.add('cmr-enterprisecgd-loading');
@@ -686,6 +663,7 @@ function cmr_enterprise_connect_grid_shortcode( $atts ) {
                 if (response.success) {
                     if (!isLoadMore) {
                         grid.innerHTML = response.data.html || '<p>No Enterprise Connect found.</p>';
+                        grid.style.opacity = '1';
                     } else {
                         grid.insertAdjacentHTML('beforeend', response.data.html);
                     }
@@ -916,6 +894,8 @@ function cmr_load_more_enterprise_connect_ajax() {
             $read_time = ceil( $word_count / 200 );
             if ($read_time < 1) $read_time = 1;
             $date = get_the_date('d M Y');
+            $cats = get_the_category( $post_id );
+            $cat_name = ! empty( $cats ) ? $cats[0]->name : 'Enterprise Connect';
             ?>
             <div class="cmr-enterprisecgd-card">
                 <div class="cmr-enterprisecgd-card-img-wrap">
@@ -930,7 +910,7 @@ function cmr_load_more_enterprise_connect_ajax() {
                     </a>
                 </div>
                 <div class="cmr-enterprisecgd-card-meta">
-                    <div class="cmr-enterprisecgd-card-label">Enterprise Connect <span>|</span> <?php echo esc_html($date); ?></div>
+                    <div class="cmr-enterprisecgd-card-label"><?php echo esc_html($cat_name); ?> <span>|</span> <?php echo esc_html($date); ?></div>
                     <div class="cmr-enterprisecgd-card-time"><?php echo esc_html($read_time); ?> min read</div>
                 </div>
                 <h3 class="cmr-enterprisecgd-card-title">

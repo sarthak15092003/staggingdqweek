@@ -169,6 +169,25 @@ def scrape_and_import_post(post_url):
         category_slug = ''
         publish_date = ''
         
+        seo_description = ''
+        meta_desc = soup.find('meta', attrs={'name': 'description'})
+        if meta_desc and meta_desc.get('content'):
+            seo_description = meta_desc['content']
+        else:
+            og_desc = soup.find('meta', property='og:description')
+            if og_desc and og_desc.get('content'):
+                seo_description = og_desc['content']
+                
+        seo_keywords = ''
+        meta_keywords = soup.find('meta', attrs={'name': 'keywords'})
+        if meta_keywords and meta_keywords.get('content'):
+            seo_keywords = meta_keywords['content']
+            
+        author = ''
+        meta_author = soup.find('meta', attrs={'name': 'author'})
+        if meta_author and meta_author.get('content'):
+            author = meta_author['content']
+        
         for s in soup.find_all('script', type='application/ld+json'):
             if s.string and any(k in s.string for k in ['NewsArticle', 'BlogPosting', 'Article']):
                 try:
@@ -178,6 +197,11 @@ def scrape_and_import_post(post_url):
                         if not image_url and 'image' in ld:
                             img = ld['image']
                             image_url = img[0] if isinstance(img, list) else (img.get('url') if isinstance(img, dict) else img)
+                        if not author and 'author' in ld:
+                            auth = ld['author']
+                            if isinstance(auth, list) and len(auth) > 0:
+                                auth = auth[0]
+                            author = auth.get('name', '') if isinstance(auth, dict) else (auth if isinstance(auth, str) else '')
                         break
                 except:
                     pass
@@ -211,7 +235,10 @@ def scrape_and_import_post(post_url):
             'content': content_html,
             'date': publish_date,
             'category': category_slug,
-            'image_url': image_url
+            'image_url': image_url,
+            'author': author,
+            'seo_description': seo_description,
+            'seo_keywords': seo_keywords
         }
         
         res = post_bridge('create_post', payload)

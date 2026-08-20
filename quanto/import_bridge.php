@@ -124,6 +124,9 @@ if ($action === 'create_post') {
     $slug = isset($_POST['slug']) ? sanitize_title($_POST['slug']) : '';
     $category_slug = isset($_POST['category']) ? sanitize_title($_POST['category']) : '';
     $image_url = isset($_POST['image_url']) ? esc_url_raw($_POST['image_url']) : '';
+    $author_name = isset($_POST['author']) ? sanitize_text_field($_POST['author']) : '';
+    $seo_keywords = isset($_POST['seo_keywords']) ? sanitize_text_field($_POST['seo_keywords']) : '';
+    $seo_description = isset($_POST['seo_description']) ? sanitize_textarea_field($_POST['seo_description']) : '';
     
     if (empty($title)) {
         echo json_encode(['error' => 'Post title required']);
@@ -131,11 +134,11 @@ if ($action === 'create_post') {
     }
 
     // Check if post already exists by slug or title
+    $post_id = 0;
     if (!empty($slug)) {
         $existing = get_page_by_path($slug, OBJECT, 'post');
         if ($existing) {
-            echo json_encode(['success' => true, 'post_id' => $existing->ID, 'existed' => true]);
-            exit;
+            $post_id = $existing->ID;
         }
     }
 
@@ -166,15 +169,49 @@ if ($action === 'create_post') {
         $post_data['post_date'] = date('Y-m-d H:i:s', strtotime($date));
     }
 
-    $post_id = wp_insert_post($post_data);
+    if (!empty($author_name)) {
+        $user_login = sanitize_title($author_name);
+        if (empty($user_login)) {
+            $user_login = 'author_' . rand(1000, 9999);
+        }
+        $user = get_user_by('login', $user_login);
+        if (!$user) {
+            $user_id = wp_create_user($user_login, wp_generate_password(), $user_login . '@dqweek.com');
+            if (!is_wp_error($user_id)) {
+                wp_update_user(['ID' => $user_id, 'display_name' => $author_name]);
+                $post_data['post_author'] = $user_id;
+            }
+        } else {
+            $post_data['post_author'] = $user->ID;
+        }
+    }
 
-    if (is_wp_error($post_id)) {
-        echo json_encode(['error' => $post_id->get_error_message()]);
+    if ($post_id > 0) {
+        $post_data['ID'] = $post_id;
+        $result_id = wp_update_post($post_data);
+        $existed = true;
+    } else {
+        $result_id = wp_insert_post($post_data);
+        $existed = false;
+    }
+
+    if (is_wp_error($result_id)) {
+        echo json_encode(['error' => $result_id->get_error_message()]);
         exit;
+    }
+    
+    $post_id = $result_id;
+
+    if (!empty($seo_keywords)) {
+        wp_set_post_tags($post_id, $seo_keywords, false);
+    }
+    if (!empty($seo_description)) {
+        update_post_meta($post_id, '_yoast_wpseo_metadesc', $seo_description);
+        update_post_meta($post_id, 'rank_math_description', $seo_description);
     }
 
     // Attach Featured Image if provided
-    if (!empty($image_url) && $post_id) {
+    if (!empty($image_url) && $post_id && !has_post_thumbnail($post_id)) {
         require_once ABSPATH . 'wp-admin/includes/image.php';
         require_once ABSPATH . 'wp-admin/includes/file.php';
         require_once ABSPATH . 'wp-admin/includes/media.php';
@@ -185,6 +222,6 @@ if ($action === 'create_post') {
         }
     }
 
-    echo json_encode(['success' => true, 'post_id' => $post_id, 'existed' => false]);
+    echo json_encode(['success' => true, 'post_id' => $post_id, 'existed' => $existed]);
     exit;
 }
